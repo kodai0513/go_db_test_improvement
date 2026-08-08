@@ -1,0 +1,12 @@
+# Go
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS
+.DS_Store

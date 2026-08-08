@@ -1,0 +1,23 @@
+services:
+  # Boots `go test ./...` in a container that talks to the HOST's Docker
+  # daemon (docker-outside-of-docker), so every testcontainers-go call
+  # inside it starts sibling Postgres containers next to this one. This is
+  # what actually reproduces the CPU bottleneck: run
+  #   docker compose run --rm test-runner
+  # and watch `docker stats` (see scripts/watch-stats.*) on the host while
+  # it runs.
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.testrunner
+    # testcontainers-go starts the sibling Postgres containers on Docker's
+    # default `bridge` network (172.17.0.0/16) and resolves that network's
+    # gateway IP to reach their published ports. If this service stayed on
+    # the compose-created custom network instead, Docker's inter-network
+    # isolation rules would block that traffic with an immediate connection
+    # refused. Sharing the default bridge network keeps them reachable.
+    network_mode: bridge
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock

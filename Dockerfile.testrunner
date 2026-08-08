@@ -1,0 +1,16 @@
+# Runs `go test ./...` against the host's Docker daemon (docker.sock is
+# mounted by docker-compose.yml), so testcontainers-go inside this
+# container spins up sibling Postgres containers on the host.
+FROM golang:1.22-bookworm
+
+WORKDIR /app
+COPY . .
+
+# Resolves go.sum against the real module proxy; requires network access
+# at build time.
+RUN go mod tidy
+
+# -p 15 forces all 15 infrastructure packages to run concurrently regardless
+# of how many CPU cores the host actually has, so the bottleneck reproduces
+# reliably even on small dev machines.
+CMD ["go", "test", "./...", "-v", "-p", "15"]

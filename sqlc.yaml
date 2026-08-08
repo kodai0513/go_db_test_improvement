@@ -1,0 +1,122 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "db/queries/member.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/member/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/product.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/product/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/inventory.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/inventory/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/order.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/order/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/payment.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/payment/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/shipment.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/shipment/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/coupon.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/coupon/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/review.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/review/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/notification.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/notification/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/support.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/support/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/loyalty.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/loyalty/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/staff.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/staff/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/pricing.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/pricing/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/vendor.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/merchant/postgres/sqlc"
+        sql_package: "database/sql"
+  - engine: "postgresql"
+    queries: "db/queries/content.sql"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/infrastructure/content/postgres/sqlc"
+        sql_package: "database/sql"

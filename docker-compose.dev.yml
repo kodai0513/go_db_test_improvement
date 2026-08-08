@@ -1,0 +1,24 @@
+services:
+  # Convenience DB for running `cmd/api` locally. Not used by the
+  # testcontainer bottleneck reproduction (see docker-compose.yml) - the
+  # infrastructure tests always boot their own containers.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
