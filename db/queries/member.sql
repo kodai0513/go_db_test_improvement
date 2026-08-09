@@ -158,3 +158,42 @@ SELECT * FROM member_point_accounts WHERE member_id = $1 ORDER BY updated_at DES
 
 -- name: DeleteMemberPointAccount :exec
 DELETE FROM member_point_accounts WHERE id = $1;
+
+-- name: ListMemberCountAndAvgPointBalanceByTag :many
+-- タグごとに、そのタグを持つ会員数と平均ポイント残高を集計する。
+SELECT
+    mt.id AS member_tag_id,
+    mt.name AS tag_name,
+    COUNT(DISTINCT mta.member_id) AS member_count,
+    COALESCE(AVG(mpa.balance), 0)::float8 AS avg_point_balance
+FROM member_tags mt
+JOIN member_tag_assignments mta ON mta.member_tag_id = mt.id
+LEFT JOIN member_point_accounts mpa ON mpa.member_id = mta.member_id
+GROUP BY mt.id, mt.name
+ORDER BY member_count DESC, mt.name;
+
+-- name: ListTopMembersByAddressCountAndPointBalance :many
+-- 会員ごとの登録住所数とポイント残高を集計し、残高降順・住所数降順で上位N件を返す。
+SELECT
+    m.id AS member_id,
+    m.name AS member_name,
+    COUNT(ma.id) AS address_count,
+    COALESCE(mpa.balance, 0) AS point_balance
+FROM members m
+LEFT JOIN member_addresses ma ON ma.member_id = m.id
+LEFT JOIN member_point_accounts mpa ON mpa.member_id = m.id
+GROUP BY m.id, m.name, mpa.balance
+ORDER BY point_balance DESC, address_count DESC, m.name
+LIMIT $1;
+
+-- name: ListReferralRewardSummaryByReferrer :many
+-- 紹介者(会員)ごとの紹介成功件数と獲得報酬合計を集計する。
+SELECT
+    m.id AS referrer_member_id,
+    m.name AS referrer_name,
+    COUNT(mr.id) AS referral_count,
+    COALESCE(SUM(mr.reward_yen), 0)::bigint AS total_reward_yen
+FROM members m
+JOIN member_referrals mr ON mr.referrer_member_id = m.id
+GROUP BY m.id, m.name
+ORDER BY total_reward_yen DESC, m.name;
