@@ -58,6 +58,57 @@ func (r *Repository) List(ctx context.Context) ([]*product.Product, error) {
 	return products, nil
 }
 
+func (r *Repository) ListProductCountAndAvgPriceByCategory(ctx context.Context) ([]*product.ProductCategorySummary, error) {
+	rows, err := r.q.ListProductCountAndAvgPriceByCategory(ctx)
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]*product.ProductCategorySummary, 0, len(rows))
+	for _, row := range rows {
+		summaries = append(summaries, &product.ProductCategorySummary{
+			CategoryID:   row.CategoryID,
+			CategoryName: row.CategoryName,
+			ProductCount: row.ProductCount,
+			AvgPriceYen:  row.AvgPriceYen,
+		})
+	}
+	return summaries, nil
+}
+
+func (r *Repository) ListVariantPriceRangeByProduct(ctx context.Context) ([]*product.ProductVariantPriceRange, error) {
+	rows, err := r.q.ListVariantPriceRangeByProduct(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ranges := make([]*product.ProductVariantPriceRange, 0, len(rows))
+	for _, row := range rows {
+		ranges = append(ranges, &product.ProductVariantPriceRange{
+			ProductID:    row.ProductID,
+			ProductName:  row.ProductName,
+			VariantCount: row.VariantCount,
+			MinPriceYen:  row.MinPriceYen,
+			MaxPriceYen:  row.MaxPriceYen,
+		})
+	}
+	return ranges, nil
+}
+
+func (r *Repository) ListProductCountByTag(ctx context.Context) ([]*product.ProductTagSummary, error) {
+	rows, err := r.q.ListProductCountByTag(ctx)
+	if err != nil {
+		return nil, err
+	}
+	summaries := make([]*product.ProductTagSummary, 0, len(rows))
+	for _, row := range rows {
+		summaries = append(summaries, &product.ProductTagSummary{
+			ProductTagID: row.ProductTagID,
+			TagName:      row.TagName,
+			ProductCount: row.ProductCount,
+		})
+	}
+	return summaries, nil
+}
+
 func toDomain(row sqlc.Product) product.Product {
 	return product.Product{
 		ID:        row.ID,
