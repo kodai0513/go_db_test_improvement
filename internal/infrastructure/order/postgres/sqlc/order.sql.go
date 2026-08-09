@@ -855,3 +855,111 @@ func (q *Queries) DeleteOrderCancellation(ctx context.Context, id uuid.UUID) err
 	_, err := q.db.ExecContext(ctx, deleteOrderCancellation, id)
 	return err
 }
+
+const listOrderSummaryByMember = `-- name: ListOrderSummaryByMember :many
+SELECT
+    o.member_id AS member_id,
+    COUNT(o.id) AS order_count,
+    COALESCE(SUM(o.total_amount_yen), 0)::bigint AS total_amount_yen,
+    COALESCE(AVG(o.total_amount_yen), 0)::float8 AS avg_amount_yen
+FROM orders o
+GROUP BY o.member_id
+ORDER BY total_amount_yen DESC
+`
+
+type ListOrderSummaryByMemberRow struct {
+	MemberID       uuid.UUID
+	OrderCount     int64
+	TotalAmountYen int64
+	AvgAmountYen   float64
+}
+
+func (q *Queries) ListOrderSummaryByMember(ctx context.Context) ([]ListOrderSummaryByMemberRow, error) {
+	rows, err := q.db.QueryContext(ctx, listOrderSummaryByMember)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOrderSummaryByMemberRow
+	for rows.Next() {
+		var i ListOrderSummaryByMemberRow
+		if err := rows.Scan(&i.MemberID, &i.OrderCount, &i.TotalAmountYen, &i.AvgAmountYen); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrderCountByStatus = `-- name: ListOrderCountByStatus :many
+SELECT
+    o.status AS status,
+    COUNT(o.id) AS order_count
+FROM orders o
+GROUP BY o.status
+ORDER BY order_count DESC, o.status
+`
+
+type ListOrderCountByStatusRow struct {
+	Status     string
+	OrderCount int64
+}
+
+func (q *Queries) ListOrderCountByStatus(ctx context.Context) ([]ListOrderCountByStatusRow, error) {
+	rows, err := q.db.QueryContext(ctx, listOrderCountByStatus)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOrderCountByStatusRow
+	for rows.Next() {
+		var i ListOrderCountByStatusRow
+		if err := rows.Scan(&i.Status, &i.OrderCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSalesQuantityAndAmountByProduct = `-- name: ListSalesQuantityAndAmountByProduct :many
+SELECT
+    oi.product_id AS product_id,
+    COALESCE(SUM(oi.quantity), 0)::bigint AS total_quantity,
+    COALESCE(SUM(oi.quantity * oi.unit_price_yen), 0)::bigint AS total_amount_yen
+FROM order_items oi
+GROUP BY oi.product_id
+ORDER BY total_amount_yen DESC
+`
+
+type ListSalesQuantityAndAmountByProductRow struct {
+	ProductID      uuid.UUID
+	TotalQuantity  int64
+	TotalAmountYen int64
+}
+
+func (q *Queries) ListSalesQuantityAndAmountByProduct(ctx context.Context) ([]ListSalesQuantityAndAmountByProductRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSalesQuantityAndAmountByProduct)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSalesQuantityAndAmountByProductRow
+	for rows.Next() {
+		var i ListSalesQuantityAndAmountByProductRow
+		if err := rows.Scan(&i.ProductID, &i.TotalQuantity, &i.TotalAmountYen); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
