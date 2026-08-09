@@ -341,10 +341,10 @@ RETURNING id, product_id, product_attribute_id, value
 `
 
 type CreateProductAttributeValueParams struct {
-	ID                  uuid.UUID
-	ProductID           uuid.UUID
-	ProductAttributeID  uuid.UUID
-	Value               string
+	ID                 uuid.UUID
+	ProductID          uuid.UUID
+	ProductAttributeID uuid.UUID
+	Value              string
 }
 
 func (q *Queries) CreateProductAttributeValue(ctx context.Context, arg CreateProductAttributeValueParams) (ProductAttributeValue, error) {
@@ -867,4 +867,124 @@ DELETE FROM product_tag_assignments WHERE id = $1
 func (q *Queries) DeleteProductTagAssignment(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteProductTagAssignment, id)
 	return err
+}
+
+// 集計クエリ
+
+const listProductCountAndAvgPriceByCategory = `-- name: ListProductCountAndAvgPriceByCategory :many
+SELECT
+    c.id AS category_id,
+    c.name AS category_name,
+    COUNT(DISTINCT pc.product_id) AS product_count,
+    COALESCE(AVG(p.price_yen), 0)::float8 AS avg_price_yen
+FROM categories c
+JOIN product_categories pc ON pc.category_id = c.id
+JOIN products p ON p.id = pc.product_id
+GROUP BY c.id, c.name
+ORDER BY product_count DESC, c.name
+`
+
+type ListProductCountAndAvgPriceByCategoryRow struct {
+	CategoryID   uuid.UUID
+	CategoryName string
+	ProductCount int64
+	AvgPriceYen  float64
+}
+
+func (q *Queries) ListProductCountAndAvgPriceByCategory(ctx context.Context) ([]ListProductCountAndAvgPriceByCategoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, listProductCountAndAvgPriceByCategory)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProductCountAndAvgPriceByCategoryRow
+	for rows.Next() {
+		var i ListProductCountAndAvgPriceByCategoryRow
+		if err := rows.Scan(&i.CategoryID, &i.CategoryName, &i.ProductCount, &i.AvgPriceYen); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVariantPriceRangeByProduct = `-- name: ListVariantPriceRangeByProduct :many
+SELECT
+    p.id AS product_id,
+    p.name AS product_name,
+    COUNT(pv.id) AS variant_count,
+    MIN(pv.price_yen) AS min_price_yen,
+    MAX(pv.price_yen) AS max_price_yen
+FROM products p
+JOIN product_variants pv ON pv.product_id = p.id
+GROUP BY p.id, p.name
+ORDER BY variant_count DESC, p.name
+`
+
+type ListVariantPriceRangeByProductRow struct {
+	ProductID    uuid.UUID
+	ProductName  string
+	VariantCount int64
+	MinPriceYen  int32
+	MaxPriceYen  int32
+}
+
+func (q *Queries) ListVariantPriceRangeByProduct(ctx context.Context) ([]ListVariantPriceRangeByProductRow, error) {
+	rows, err := q.db.QueryContext(ctx, listVariantPriceRangeByProduct)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListVariantPriceRangeByProductRow
+	for rows.Next() {
+		var i ListVariantPriceRangeByProductRow
+		if err := rows.Scan(&i.ProductID, &i.ProductName, &i.VariantCount, &i.MinPriceYen, &i.MaxPriceYen); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductCountByTag = `-- name: ListProductCountByTag :many
+SELECT
+    pt.id AS product_tag_id,
+    pt.name AS tag_name,
+    COUNT(pta.product_id) AS product_count
+FROM product_tags pt
+JOIN product_tag_assignments pta ON pta.product_tag_id = pt.id
+GROUP BY pt.id, pt.name
+ORDER BY product_count DESC, pt.name
+`
+
+type ListProductCountByTagRow struct {
+	ProductTagID uuid.UUID
+	TagName      string
+	ProductCount int64
+}
+
+func (q *Queries) ListProductCountByTag(ctx context.Context) ([]ListProductCountByTagRow, error) {
+	rows, err := q.db.QueryContext(ctx, listProductCountByTag)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProductCountByTagRow
+	for rows.Next() {
+		var i ListProductCountByTagRow
+		if err := rows.Scan(&i.ProductTagID, &i.TagName, &i.ProductCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
