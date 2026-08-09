@@ -19,5 +19,14 @@ services:
     network_mode: bridge
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # --rm でコンテナを使い捨てるため、GOCACHE をこのボリュームに永続化
+      # しないと `go test` のたびに testcontainers-go 一式(docker
+      # クライアント・grpc・opentelemetryなど)をゼロからフルコンパイルする
+      # ことになり、それ自体が数百%〜1000%超のCPUを一時的に食う主因になる
+      # (Postgresコンテナ側の負荷とは別の要因)。
+      - go-build-cache:/root/.cache/go-build
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
+
+volumes:
+  go-build-cache:
