@@ -170,3 +170,41 @@ SELECT * FROM product_tag_assignments WHERE product_tag_id = $1 ORDER BY id DESC
 
 -- name: DeleteProductTagAssignment :exec
 DELETE FROM product_tag_assignments WHERE id = $1;
+
+-- 集計クエリ
+-- name: ListProductCountAndAvgPriceByCategory :many
+-- カテゴリごとの商品数と平均価格を集計する。
+SELECT
+    c.id AS category_id,
+    c.name AS category_name,
+    COUNT(DISTINCT pc.product_id) AS product_count,
+    COALESCE(AVG(p.price_yen), 0)::float8 AS avg_price_yen
+FROM categories c
+JOIN product_categories pc ON pc.category_id = c.id
+JOIN products p ON p.id = pc.product_id
+GROUP BY c.id, c.name
+ORDER BY product_count DESC, c.name;
+
+-- name: ListVariantPriceRangeByProduct :many
+-- 商品ごとのバリエーション数と価格レンジ(最安値・最高値)を集計する。
+SELECT
+    p.id AS product_id,
+    p.name AS product_name,
+    COUNT(pv.id) AS variant_count,
+    MIN(pv.price_yen) AS min_price_yen,
+    MAX(pv.price_yen) AS max_price_yen
+FROM products p
+JOIN product_variants pv ON pv.product_id = p.id
+GROUP BY p.id, p.name
+ORDER BY variant_count DESC, p.name;
+
+-- name: ListProductCountByTag :many
+-- 商品タグごとの商品数を集計する。
+SELECT
+    pt.id AS product_tag_id,
+    pt.name AS tag_name,
+    COUNT(pta.product_id) AS product_count
+FROM product_tags pt
+JOIN product_tag_assignments pta ON pta.product_tag_id = pt.id
+GROUP BY pt.id, pt.name
+ORDER BY product_count DESC, pt.name;

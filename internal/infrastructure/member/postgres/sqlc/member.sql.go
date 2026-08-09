@@ -840,3 +840,123 @@ func (q *Queries) DeleteMemberPointAccount(ctx context.Context, id uuid.UUID) er
 	_, err := q.db.ExecContext(ctx, deleteMemberPointAccount, id)
 	return err
 }
+
+const listMemberCountAndAvgPointBalanceByTag = `-- name: ListMemberCountAndAvgPointBalanceByTag :many
+SELECT
+    mt.id AS member_tag_id,
+    mt.name AS tag_name,
+    COUNT(DISTINCT mta.member_id) AS member_count,
+    COALESCE(AVG(mpa.balance), 0)::float8 AS avg_point_balance
+FROM member_tags mt
+JOIN member_tag_assignments mta ON mta.member_tag_id = mt.id
+LEFT JOIN member_point_accounts mpa ON mpa.member_id = mta.member_id
+GROUP BY mt.id, mt.name
+ORDER BY member_count DESC, mt.name
+`
+
+type ListMemberCountAndAvgPointBalanceByTagRow struct {
+	MemberTagID     uuid.UUID
+	TagName         string
+	MemberCount     int64
+	AvgPointBalance float64
+}
+
+func (q *Queries) ListMemberCountAndAvgPointBalanceByTag(ctx context.Context) ([]ListMemberCountAndAvgPointBalanceByTagRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMemberCountAndAvgPointBalanceByTag)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMemberCountAndAvgPointBalanceByTagRow
+	for rows.Next() {
+		var i ListMemberCountAndAvgPointBalanceByTagRow
+		if err := rows.Scan(&i.MemberTagID, &i.TagName, &i.MemberCount, &i.AvgPointBalance); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTopMembersByAddressCountAndPointBalance = `-- name: ListTopMembersByAddressCountAndPointBalance :many
+SELECT
+    m.id AS member_id,
+    m.name AS member_name,
+    COUNT(ma.id) AS address_count,
+    COALESCE(mpa.balance, 0) AS point_balance
+FROM members m
+LEFT JOIN member_addresses ma ON ma.member_id = m.id
+LEFT JOIN member_point_accounts mpa ON mpa.member_id = m.id
+GROUP BY m.id, m.name, mpa.balance
+ORDER BY point_balance DESC, address_count DESC, m.name
+LIMIT $1
+`
+
+type ListTopMembersByAddressCountAndPointBalanceRow struct {
+	MemberID     uuid.UUID
+	MemberName   string
+	AddressCount int64
+	PointBalance int32
+}
+
+func (q *Queries) ListTopMembersByAddressCountAndPointBalance(ctx context.Context, limit int32) ([]ListTopMembersByAddressCountAndPointBalanceRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTopMembersByAddressCountAndPointBalance, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTopMembersByAddressCountAndPointBalanceRow
+	for rows.Next() {
+		var i ListTopMembersByAddressCountAndPointBalanceRow
+		if err := rows.Scan(&i.MemberID, &i.MemberName, &i.AddressCount, &i.PointBalance); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReferralRewardSummaryByReferrer = `-- name: ListReferralRewardSummaryByReferrer :many
+SELECT
+    m.id AS referrer_member_id,
+    m.name AS referrer_name,
+    COUNT(mr.id) AS referral_count,
+    COALESCE(SUM(mr.reward_yen), 0)::bigint AS total_reward_yen
+FROM members m
+JOIN member_referrals mr ON mr.referrer_member_id = m.id
+GROUP BY m.id, m.name
+ORDER BY total_reward_yen DESC, m.name
+`
+
+type ListReferralRewardSummaryByReferrerRow struct {
+	ReferrerMemberID uuid.UUID
+	ReferrerName     string
+	ReferralCount    int64
+	TotalRewardYen   int64
+}
+
+func (q *Queries) ListReferralRewardSummaryByReferrer(ctx context.Context) ([]ListReferralRewardSummaryByReferrerRow, error) {
+	rows, err := q.db.QueryContext(ctx, listReferralRewardSummaryByReferrer)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReferralRewardSummaryByReferrerRow
+	for rows.Next() {
+		var i ListReferralRewardSummaryByReferrerRow
+		if err := rows.Scan(&i.ReferrerMemberID, &i.ReferrerName, &i.ReferralCount, &i.TotalRewardYen); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

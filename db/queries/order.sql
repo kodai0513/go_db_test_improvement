@@ -161,3 +161,33 @@ SELECT * FROM order_cancellations WHERE order_id = $1 ORDER BY cancelled_at DESC
 
 -- name: DeleteOrderCancellation :exec
 DELETE FROM order_cancellations WHERE id = $1;
+
+-- name: ListOrderSummaryByMember :many
+-- 会員ごとの注文件数・合計金額・平均注文金額を集計する。
+SELECT
+    o.member_id AS member_id,
+    COUNT(o.id) AS order_count,
+    COALESCE(SUM(o.total_amount_yen), 0)::bigint AS total_amount_yen,
+    COALESCE(AVG(o.total_amount_yen), 0)::float8 AS avg_amount_yen
+FROM orders o
+GROUP BY o.member_id
+ORDER BY total_amount_yen DESC;
+
+-- name: ListOrderCountByStatus :many
+-- ステータスごとの注文件数を集計する。
+SELECT
+    o.status AS status,
+    COUNT(o.id) AS order_count
+FROM orders o
+GROUP BY o.status
+ORDER BY order_count DESC, o.status;
+
+-- name: ListSalesQuantityAndAmountByProduct :many
+-- 商品ごとの販売数量・売上合計を集計する。
+SELECT
+    oi.product_id AS product_id,
+    COALESCE(SUM(oi.quantity), 0)::bigint AS total_quantity,
+    COALESCE(SUM(oi.quantity * oi.unit_price_yen), 0)::bigint AS total_amount_yen
+FROM order_items oi
+GROUP BY oi.product_id
+ORDER BY total_amount_yen DESC;
